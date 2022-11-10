@@ -10,7 +10,7 @@ import mypy.type_visitor
 
 result : mypy.build.BuildResult = mypycustom.main(["--show-traceback", "--verbose", "ex1.py"])
 
-class MyVisitor(mypy.visitor.NodeVisitor[None], CheckerPluginInterface):
+class MyVisitor(mypy.visitor.NodeVisitor[None]):
     type_checker : mypy.checker.TypeChecker
 
     def __init__(self, checker:mypy.checker.TypeChecker):

@@ -20,7 +20,7 @@ MEM_PROFILE: Final = False  # If True, dump memory profile
 
 def main(
     args: list[str] | None = None
-) -> mypy.BindResult | None:
+) -> mypy.build.BuildResult | None:
     stdout: TextIO = sys.stdout
     stderr: TextIO = sys.stderr
     
@@ -60,7 +60,7 @@ def main(
 
     if options.install_types and not sources:
         mypy.main.install_types(formatter, options, non_interactive=options.non_interactive)
-        return
+        return None
 
     res, messages, blockers = mypy.main.run_build(sources, options, fscache, t0, stdout, stderr)
 
