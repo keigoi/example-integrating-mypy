@@ -11,7 +11,7 @@ import mypy.types
 
 result: mypy.build.BuildResult = mypycustom.main(["--show-traceback",
                                                   #  "--verbose",
-                                                   "--config-file", "atmark_plugin_mypy.ini",
+                                                  "--custom-typeshed", "./typeshed",
                                                   "ex1.py"])
 
 

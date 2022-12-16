@@ -29,9 +29,9 @@ class A(Role):
 def at(x:T, role:Role) -> T:
     return x
 
-def g(x:str):
+def g(x:object):
     # A() @ ""
-    # x @ A()
+    x @ A()
     # A() @ 123
     return x
 
