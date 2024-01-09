@@ -41,7 +41,7 @@ from builtins import *
 
 class Conv(Ch2[A,B]):
   def __init__(self):
-    self.chAB = Channel[int,A,B]()
+    self.chAB : Channel[int,A,B] = Channel[int,A,B]()
 
   def f(self,x:At[int,A]):
     x = 123@A()
