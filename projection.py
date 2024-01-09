@@ -82,56 +82,46 @@ def projection_md(n:mypy.nodes.Statement) -> Stmt:
 #    
 
 def projection_class(n:mypy.nodes.ClassDef,r:str,tc:mypy.checker.TypeChecker) -> ClassDef:
-        with tc.tscope.class_scope(n.info), tc.enter_partial_types(is_class=True):
-            old_binder = tc.binder
-            tc.binder = mypy.checker.ConditionalTypeBinder()
-            with tc.binder.top_frame_context():
-                with tc.scope.push_class(n.info):
-                    if "Ch1" not in str(n.base_type_exprs[0]) and "Ch2" not in str(n.base_type_exprs[0]) and "Ch3" not in str(n.base_type_exprs[0]):
-                        raise Exception
-                    if r not in str(n.base_type_exprs[0]):
-                        raise Exception
-                    exprs:list[str] = []
-                    for exp in n.base_type_exprs[1:]:
-                        exprs += [(projection_exp(exp,r,tc))]
-                    #n.defs.body[0]からbodyの長さ分だけbodyの要素に対してそれぞれプロジェクションする　n.defs.body[i]に対してprojection_func
-                    #プロジェクション後のbodyをリストでまとめてClassDefの要素としてとる
-                    s_list:list[Stmt] = []
-                    for stm in n.defs.body:
-                        if isinstance(stm,mypy.nodes.FuncDef):
-                            s_list.append(projection_func(stm,r,tc))
-                        else:
-                            raise Exception
-                    tc.binder = old_binder
-                    return ClassDef(n.name,r,exprs,Block(s_list,4))
+    if "Ch1" not in str(n.base_type_exprs[0]) and "Ch2" not in str(n.base_type_exprs[0]) and "Ch3" not in str(n.base_type_exprs[0]):
+        raise Exception
+    if r not in str(n.base_type_exprs[0]):
+        raise Exception
+    exprs:list[str] = []
+    for exp in n.base_type_exprs[1:]:
+        exprs += [(projection_exp(exp,r,tc))]
+    #n.defs.body[0]からbodyの長さ分だけbodyの要素に対してそれぞれプロジェクションする　n.defs.body[i]に対してprojection_func
+    #プロジェクション後のbodyをリストでまとめてClassDefの要素としてとる
+    s_list:list[Stmt] = []
+    for stm in n.defs.body:
+        if isinstance(stm,mypy.nodes.FuncDef):
+            s_list.append(projection_func(stm,r,tc))
+        else:
+            raise Exception
+    return ClassDef(n.name,r,exprs,Block(s_list,4))
 
 def projection_func(n:mypy.nodes.FuncDef,r:str,tc:mypy.checker.TypeChecker) -> FuncDef:
     print("def!")
     print(n.name)
-    with tc.binder.top_frame_context():
-        with tc.scope.push_function(n):
-            args:list[str] = []
-            if len(n.arguments) != 0:
-                for arg in n.arguments:
-                    if arg.type_annotation is not None and r in help_func.rolesOf_t(arg.type_annotation,tc):
-                        #print(type(help_func.rolesOf_t(arg.type_annotation,tc)))
-                        #print("rolesOf_t = "+help_func.list_to_str(help_func.rolesOf_t(arg.type_annotation,tc)))
-                        #print(arg.type_annotation)
-                        #print(arg.variable.name)
-                        args.append(arg.variable.name)
-                    elif arg.type_annotation is not None and r not in help_func.rolesOf_t(arg.type_annotation,tc):
-                        #print(type(help_func.rolesOf_t(arg.type_annotation,tc)))
-                        #print("rolesOf_t = "+help_func.list_to_str(help_func.rolesOf_t(arg.type_annotation,tc)))
-                        args
-                    elif arg.type_annotation is None:
-                        args.append(arg.variable.name)
-                    else:
-                        raise Exception
-                return FuncDef(n.name,args,Block(projection_block(n.body.body,r,tc),4))
+    args:list[str] = []
+    if len(n.arguments) != 0:
+        for arg in n.arguments:
+            if arg.type_annotation is not None and r in help_func.rolesOf_t(arg.type_annotation,tc):
+                #print(type(help_func.rolesOf_t(arg.type_annotation,tc)))
+                #print("rolesOf_t = "+help_func.list_to_str(help_func.rolesOf_t(arg.type_annotation,tc)))
+                #print(arg.type_annotation)
+                #print(arg.variable.name)
+                args.append(arg.variable.name)
+            elif arg.type_annotation is not None and r not in help_func.rolesOf_t(arg.type_annotation,tc):
+                #print(type(help_func.rolesOf_t(arg.type_annotation,tc)))
+                #print("rolesOf_t = "+help_func.list_to_str(help_func.rolesOf_t(arg.type_annotation,tc)))
+                args
+            elif arg.type_annotation is None:
+                args.append(arg.variable.name)
             else:
-                return FuncDef(n.name,[],Block(projection_block(n.body.body,r,tc),4))
-
-   
+                raise Exception
+        return FuncDef(n.name,args,Block(projection_block(n.body.body,r,tc),4))
+    else:
+        return FuncDef(n.name,[],Block(projection_block(n.body.body,r,tc),4))
 
 #Block
 def projection_block(s_list:list[mypy.nodes.Statement],r:str,tc:mypy.checker.TypeChecker)-> list[Stmt]:
@@ -144,7 +134,8 @@ def projection_block(s_list:list[mypy.nodes.Statement],r:str,tc:mypy.checker.Typ
         s = s_list[0]
         # 分岐あり(e;s -> match)
         if isinstance(s,mypy.nodes.ExpressionStmt):
-            t = s.expr.accept(tc.expr_checker) # 型情報入手
+            t = help_func.get_type(tc, s.expr)
+            # t = s.expr.accept(tc.expr_checker) # 型情報入手
             if isinstance(t,mypy.types.Instance) and \
                 "enum" in t.type.defn.name and \
                     r in help_func.rolesOf(s.expr,tc) and \
@@ -334,10 +325,10 @@ def projection_exp(n:mypy.nodes.Expression,r:str,tc:mypy.checker.TypeChecker) ->
                 return "Unit.id(" + str(n.callee) + exp_var + ")"
         #method呼び出し f = memberexpr
         elif isinstance(n.callee, mypy.nodes.MemberExpr):
-            print(n.accept(tc.expr_checker))
-            print(n.callee.accept(tc.expr_checker))
-            print(n.callee.expr.accept(tc.expr_checker))
-            print(n.args[0].accept(tc.expr_checker))
+            # print(n.accept(tc.expr_checker))
+            # print(n.callee.accept(tc.expr_checker))
+            # print(n.callee.expr.accept(tc.expr_checker))
+            # print(n.args[0].accept(tc.expr_checker))
             #print("type 1= " +str(type(n)))
             #print("type 2= " +str(type(n.callee)))
             #print("type 3= " +str(n.args))

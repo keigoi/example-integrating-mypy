@@ -6,6 +6,7 @@ import mypy.checker
 import mypy.types
 import mypy.type_visitor
 from projection import *
+import help_func
 
 def get_typename(t:mypy.types.Type) -> str:
     #print(type(t))
@@ -28,7 +29,8 @@ def get_typearg(t:mypy.types.ProperType,i:int) -> str:
 
 # rolesOf(e) -> str
 def rolesOf(n:mypy.nodes.Expression, typeChecker:mypy.checker.TypeChecker) -> list[str]:
-    t0 = n.accept(typeChecker.expr_checker) #nの型情報を取得する
+    t0 = help_func.get_type(typeChecker, n)
+    # t0 = n.accept(typeChecker.expr_checker) #nの型情報を取得する
     print(t0)
     if isinstance(t0,mypy.types.ProperType):
         if get_typename(t0) == "At":
@@ -214,3 +216,10 @@ def normalize(s:Stmt) -> Stmt:
     # elif...
     assert False
 
+
+def get_type(tc:mypy.checker.TypeChecker, expr:mypy.nodes.Expression) -> mypy.types.Type :
+    try:
+        return tc.lookup_type(expr)
+    except KeyError as e:
+        print("type not known:" + str(expr))
+        raise e
